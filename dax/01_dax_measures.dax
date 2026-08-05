@@ -1,0 +1,220 @@
+// =============================================================================
+// HOSPITAL DATA ANALYTICS SYSTEM - ENTERPRISE DAX MEASURE LIBRARY
+// Data Model: Star Schema Architecture (Fact_Billing, Fact_Appointments, Dim_Doctor, etc.)
+// Author: Senior Power BI Developer & Data Visualization Expert
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// FOLDER: 1. Core Financial Measures
+// -----------------------------------------------------------------------------
+
+[Total Revenue] = 
+SUM('Fact_Billing'[total_amount])
+
+[Insurance Covered Revenue] = 
+SUM('Fact_Billing'[insurance_covered])
+
+[Patient Paid Cash Revenue] = 
+SUM('Fact_Billing'[patient_paid])
+
+[Pending Revenue] = 
+SUM('Fact_Billing'[pending_amount])
+
+[Avg Revenue Per Patient] = 
+DIVIDE([Total Revenue], [Total Patients], 0)
+
+[Avg Treatment Cost] = 
+AVERAGE('Fact_Treatments'[treatment_cost])
+
+[Avg Consultation Fee] = 
+AVERAGE('Dim_Doctor'[consultation_fee])
+
+[Completed Payment %] = 
+DIVIDE([Patient Paid Cash Revenue] + [Insurance Covered Revenue], [Total Revenue], 0)
+
+
+// -----------------------------------------------------------------------------
+// FOLDER: 2. Volume & Patient Demographics
+// -----------------------------------------------------------------------------
+
+[Total Patients] = 
+DISTINCTCOUNT('Fact_Appointments'[patient_id])
+
+[Total Registered Patients] = 
+COUNTROWS('Dim_Patient')
+
+[New Patients] = 
+CALCULATE(
+    [Total Patients],
+    FILTER(
+        'Dim_Patient',
+        'Dim_Patient'[registration_date] IN VALUES('Dim_Date'[Date])
+    )
+)
+
+[Returning Patients] = 
+[Total Patients] - [New Patients]
+
+[Patient Retention Rate %] = 
+DIVIDE([Returning Patients], [Total Patients], 0)
+
+[Total Doctors] = 
+COUNTROWS('Dim_Doctor')
+
+[Total Departments] = 
+COUNTROWS('Dim_Department')
+
+
+// -----------------------------------------------------------------------------
+// FOLDER: 3. Operations & Clinical KPIs
+// -----------------------------------------------------------------------------
+
+[Total Appointments] = 
+COUNTROWS('Fact_Appointments')
+
+[Completed Appointments] = 
+CALCULATE(
+    [Total Appointments],
+    'Fact_Appointments'[status] = "Completed"
+)
+
+[Cancelled Appointments] = 
+CALCULATE(
+    [Total Appointments],
+    'Fact_Appointments'[status] = "Cancelled"
+)
+
+[No Show Appointments] = 
+CALCULATE(
+    [Total Appointments],
+    'Fact_Appointments'[status] = "No Show"
+)
+
+[Cancellation Rate %] = 
+DIVIDE([Cancelled Appointments], [Total Appointments], 0)
+
+[No Show Rate %] = 
+DIVIDE([No Show Appointments], [Total Appointments], 0)
+
+[Avg Waiting Time (Mins)] = 
+AVERAGE('Fact_Appointments'[waiting_time_minutes])
+
+[Bed Occupancy Rate %] = 
+VAR TotalBeds = COUNTROWS('Dim_Room')
+VAR OccupiedBeds = CALCULATE(COUNTROWS('Dim_Room'), 'Dim_Room'[status] = "Occupied")
+RETURN DIVIDE(OccupiedBeds, TotalBeds, 0)
+
+[Emergency Visit Count] = 
+COUNTROWS('Fact_Emergency')
+
+[Avg Emergency Length of Stay (Hours)] = 
+AVERAGE('Fact_Emergency'[length_of_stay_hours])
+
+[Treatment Success Rate %] = 
+VAR SuccessfulCount = CALCULATE(COUNTROWS('Fact_Treatments'), 'Fact_Treatments'[success_status] = "Successful")
+VAR TotalTreatments = COUNTROWS('Fact_Treatments')
+RETURN DIVIDE(SuccessfulCount, TotalTreatments, 0)
+
+[Patient Satisfaction Score] = 
+AVERAGE('Fact_Feedback'[rating])
+
+
+// -----------------------------------------------------------------------------
+// FOLDER: 4. Time Intelligence (YTD, MTD, QTD, MoM, YoY)
+// -----------------------------------------------------------------------------
+
+[YTD Revenue] = 
+TOTALYTD([Total Revenue], 'Dim_Date'[Date])
+
+[MTD Revenue] = 
+TOTALMTD([Total Revenue], 'Dim_Date'[Date])
+
+[QTD Revenue] = 
+TOTALQTD([Total Revenue], 'Dim_Date'[Date])
+
+[Previous Month Revenue] = 
+CALCULATE(
+    [Total Revenue],
+    PREVIOUSMONTH('Dim_Date'[Date])
+)
+
+[Same Period Last Year Revenue] = 
+CALCULATE(
+    [Total Revenue],
+    SAMEPERIODLASTYEAR('Dim_Date'[Date])
+)
+
+[Revenue Growth MoM %] = 
+VAR CurrentRev = [Total Revenue]
+VAR PrevRev = [Previous Month Revenue]
+RETURN DIVIDE(CurrentRev - PrevRev, PrevRev, 0)
+
+[Revenue Growth YoY %] = 
+VAR CurrentRev = [Total Revenue]
+VAR LastYearRev = [Same Period Last Year Revenue]
+RETURN DIVIDE(CurrentRev - LastYearRev, LastYearRev, 0)
+
+[Patient Growth MoM %] = 
+VAR CurrentPatients = [Total Patients]
+VAR PrevPatients = CALCULATE([Total Patients], PREVIOUSMONTH('Dim_Date'[Date]))
+RETURN DIVIDE(CurrentPatients - PrevPatients, PrevPatients, 0)
+
+
+// -----------------------------------------------------------------------------
+// FOLDER: 5. Moving Averages & Cumulative Metrics
+// -----------------------------------------------------------------------------
+
+[3 Month Moving Avg Revenue] = 
+CALCULATE(
+    [Total Revenue],
+    DATESINPERIOD('Dim_Date'[Date], MAX('Dim_Date'[Date]), -3, MONTH)
+) / 3
+
+[Cumulative Revenue] = 
+CALCULATE(
+    [Total Revenue],
+    FILTER(
+        ALLSELECTED('Dim_Date'),
+        'Dim_Date'[Date] <= MAX('Dim_Date'[Date])
+    )
+)
+
+
+// -----------------------------------------------------------------------------
+// FOLDER: 6. Predictive & Forecasting Measures
+// -----------------------------------------------------------------------------
+
+[Revenue Baseline Trend] = 
+AVGX(
+    DATESINPERIOD('Dim_Date'[Date], MAX('Dim_Date'[Date]), -6, MONTH),
+    [Total Revenue]
+)
+
+[Next Month Revenue Forecast] = 
+[3 Month Moving Avg Revenue] * 1.045  // 4.5% baseline monthly growth factor
+
+[Forecasted Patient Volume] = 
+ROUND([Total Patients] * 1.035, 0)
+
+
+// -----------------------------------------------------------------------------
+// FOLDER: 7. Dynamic KPI Formatting & Visual Indicators
+// -----------------------------------------------------------------------------
+
+[KPI Revenue Status Icon] = 
+VAR Growth = [Revenue Growth MoM %]
+RETURN SWITCH(
+    TRUE(),
+    Growth >= 0.05, "▲ Strong Growth",
+    Growth >= 0.00, "► Stable",
+    "▼ Declining"
+)
+
+[KPI Color Code] = 
+VAR Growth = [Revenue Growth MoM %]
+RETURN SWITCH(
+    TRUE(),
+    Growth >= 0.05, "#10b981", // Emerald Green
+    Growth >= 0.00, "#3b82f6", // Royal Blue
+    "#ef4444"                  // Red
+)

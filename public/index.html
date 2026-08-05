@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apex Care Analytics | Hospital Analytics Dashboard v2.0</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js & Plugins -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- TOP HEADER -->
+    <header class="app-header">
+        <div class="brand-container">
+            <div class="brand-logo">
+                <i class="fa-solid fa-hospital"></i>
+            </div>
+            <div>
+                <div class="brand-title">Apex Care Analytics</div>
+                <div class="brand-subtitle">Enterprise Healthcare Intelligence</div>
+            </div>
+        </div>
+
+        <div class="header-center-info">
+            <span><i class="fa-regular fa-calendar"></i> <strong id="liveDateStr">--</strong></span>
+            <span><i class="fa-regular fa-clock"></i> <strong id="liveTimeStr">--</strong></span>
+            <span><i class="fa-solid fa-rotate"></i> Last Updated: <strong>Aug 5, 2026 16:25</strong></span>
+        </div>
+
+        <div class="header-right-actions">
+            <div class="user-badge">
+                <i class="fa-solid fa-user-shield"></i> Dr. Executive Board
+            </div>
+            <button class="btn-header-action" id="btnExportCSV"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+            <button class="btn-header-action" id="btnExportPDF"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
+            <button class="btn-header-action" id="btnPrintDashboard"><i class="fa-solid fa-print"></i> Print</button>
+            <button class="btn-header-action" id="themeToggleBtn"><i class="fa-solid fa-moon"></i></button>
+        </div>
+    </header>
+
+    <!-- CRITICAL LIVE ALERT PANEL -->
+    <section class="alert-panel-bar">
+        <div class="alert-panel-title"><i class="fa-solid fa-triangle-exclamation"></i> Live Alerts</div>
+        <div class="alert-item critical"><i class="fa-solid fa-circle-exclamation"></i> ICU Bed Occupancy at 92% (Critical)</div>
+        <div class="alert-item warning"><i class="fa-solid fa-clock-rotate-left"></i> Pending Bills: $48,200 (Threshold > $40K)</div>
+        <div class="alert-item warning"><i class="fa-solid fa-user-slash"></i> Appointment Cancellation Spike: 14% Today</div>
+        <div class="alert-item info"><i class="fa-solid fa-circle-info"></i> Cardiology Waiting Time: 28 Mins</div>
+    </section>
+
+    <!-- 13 SLICER FILTER BAR -->
+    <section class="filter-bar-v2">
+        <div class="filter-chip">
+            <label>Branch</label>
+            <select id="filterBranch"><option value="ALL">All Branches</option></select>
+        </div>
+        <div class="filter-chip">
+            <label>Specialization</label>
+            <select id="filterDepartment"><option value="ALL">All Specialties</option></select>
+        </div>
+        <div class="filter-chip">
+            <label>Doctor</label>
+            <select id="filterDoctor"><option value="ALL">All Doctors</option></select>
+        </div>
+        <div class="filter-chip">
+            <label>Reason / Visit</label>
+            <select id="filterDisease"><option value="ALL">All Reasons</option></select>
+        </div>
+        <div class="filter-chip">
+            <label>Treatment Type</label>
+            <select id="filterTreatment"><option value="ALL">All Types</option></select>
+        </div>
+        <div class="filter-chip">
+            <label>Gender</label>
+            <select id="filterGender">
+                <option value="ALL">All Genders</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+            </select>
+        </div>
+        <div class="filter-chip">
+            <label>Age Group</label>
+            <select id="filterAge">
+                <option value="ALL">All Ages</option>
+                <option value="Pediatric">Pediatric (<18)</option>
+                <option value="Adult">Adult (18-60)</option>
+                <option value="Senior">Senior (60+)</option>
+            </select>
+        </div>
+        <div class="filter-chip">
+            <label>Insurance</label>
+            <select id="filterInsurance"><option value="ALL">All Providers</option></select>
+        </div>
+        <div class="filter-chip">
+            <label>Payment Status</label>
+            <select id="filterPaymentStatus">
+                <option value="ALL">All Payment Status</option>
+                <option value="Paid">Paid</option>
+                <option value="Pending">Pending</option>
+            </select>
+        </div>
+        <div class="filter-chip">
+            <label>Appt Status</label>
+            <select id="filterAppStatus">
+                <option value="ALL">All Appt Status</option>
+                <option value="Completed">Completed</option>
+                <option value="Scheduled">Scheduled</option>
+                <option value="No-show">No-show</option>
+                <option value="Cancelled">Cancelled</option>
+            </select>
+        </div>
+        <div class="filter-chip">
+            <label>Year</label>
+            <select id="filterYear">
+                <option value="ALL">All Years</option>
+                <option value="2023">2023</option>
+                <option value="2024">2024</option>
+            </select>
+        </div>
+        <button id="btnResetFilters" class="btn-reset-v2"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+    </section>
+
+    <!-- NAVIGATION TABS -->
+    <nav class="nav-tabs-container">
+        <ul class="nav-tabs">
+            <li class="nav-tab-item active" data-page="page-executive"><i class="fa-solid fa-chart-pie"></i> Executive Overview</li>
+            <li class="nav-tab-item" data-page="page-patients"><i class="fa-solid fa-users"></i> Patient Analytics</li>
+            <li class="nav-tab-item" data-page="page-doctors"><i class="fa-solid fa-user-doctor"></i> Doctor Performance</li>
+            <li class="nav-tab-item" data-page="page-appointments"><i class="fa-solid fa-calendar-check"></i> Appointments</li>
+            <li class="nav-tab-item" data-page="page-financial"><i class="fa-solid fa-file-invoice-dollar"></i> Financials & Forecast</li>
+            <li class="nav-tab-item" data-page="page-treatments"><i class="fa-solid fa-stethoscope"></i> Treatments</li>
+            <li class="nav-tab-item" data-page="page-diseases"><i class="fa-solid fa-disease"></i> Disease Analytics</li>
+            <li class="nav-tab-item" data-page="page-operations"><i class="fa-solid fa-bed-pulse"></i> Operations & Beds</li>
+            <li class="nav-tab-item" data-page="page-ai-insights"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Scenario Analytics</li>
+            <li class="nav-tab-item" data-page="page-dataset"><i class="fa-solid fa-folder-open"></i> 📂 Dataset Manager</li>
+        </ul>
+    </nav>
+
+    <!-- ======================================================================= -->
+    <!-- PAGE 1: EXECUTIVE DASHBOARD -->
+    <!-- ======================================================================= -->
+    <main id="page-executive" class="dashboard-page active">
+        <!-- Compact Executive KPIs -->
+        <div class="kpi-grid-v2">
+            <div class="card-v2">
+                <div class="kpi-title-v2">Total Patients</div>
+                <div class="kpi-value-v2" id="kpiTotalPatients">0</div>
+                <div class="kpi-sub-v2"><span class="badge-good">Active Dataset</span></div>
+            </div>
+            <div class="card-v2">
+                <div class="kpi-title-v2">Total Doctors</div>
+                <div class="kpi-value-v2" id="kpiTotalDoctors">0</div>
+                <div class="kpi-sub-v2"><span class="badge-good">Active Physicians</span></div>
+            </div>
+            <div class="card-v2">
+                <div class="kpi-title-v2">Total Revenue</div>
+                <div class="kpi-value-v2" id="kpiTotalRevenue">$0</div>
+                <div class="kpi-sub-v2"><span class="badge-good">+12.4% MoM</span></div>
+            </div>
+            <div class="card-v2">
+                <div class="kpi-title-v2">Pending Billing</div>
+                <div class="kpi-value-v2" id="kpiPendingBilling">$0</div>
+                <div class="kpi-sub-v2"><span class="badge-warning">Requires Follow-up</span></div>
+            </div>
+            <div class="card-v2">
+                <div class="kpi-title-v2">Avg Treatment Cost</div>
+                <div class="kpi-value-v2" id="kpiAvgTreatmentCost">$0</div>
+                <div class="kpi-sub-v2"><span class="badge-good">Stable</span></div>
+            </div>
+            <div class="card-v2">
+                <div class="kpi-title-v2">Completed Appts</div>
+                <div class="kpi-value-v2" id="kpiCompletedAppts">0</div>
+                <div class="kpi-sub-v2"><span class="badge-good">75% Completion</span></div>
+            </div>
+        </div>
+
+        <!-- AI Smart Executive Narrative -->
+        <div class="card-v2" style="margin-bottom:12px; background: linear-gradient(135deg, rgba(14,165,233,0.1) 0%, rgba(16,185,129,0.1) 100%); border-color: rgba(14,165,233,0.3);">
+            <div class="card-title-v2" style="color:var(--primary);"><i class="fa-solid fa-robot"></i> Executive Smart Narrative AI Report</div>
+            <div id="executiveSmartNarrative" style="font-size:11px; line-height:1.5; color:var(--text-muted); margin-top:4px;">
+                Analyzing SQL dataset metrics...
+            </div>
+        </div>
+
+        <!-- Main Executive Grid -->
+        <div class="grid-cols-2-1">
+            <div class="card-v2">
+                <div class="card-header-v2">
+                    <div class="card-title-v2"><i class="fa-solid fa-chart-area"></i> Revenue Trend & Moving Average</div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="chartExecutiveRevenueTrend"></canvas>
+                </div>
+            </div>
+            <div class="card-v2">
+                <div class="card-header-v2">
+                    <div class="card-title-v2"><i class="fa-solid fa-chart-pie"></i> Revenue by Specialization</div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="chartExecutiveDeptShare"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-cols-2">
+            <div class="card-v2">
+                <div class="card-header-v2">
+                    <div class="card-title-v2"><i class="fa-solid fa-trophy"></i> Doctor Revenue Leaderboard</div>
+                </div>
+                <table class="table-dense" id="tableTopDoctorsPreview">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Doctor</th>
+                            <th>Specialization</th>
+                            <th>Branch</th>
+                            <th>Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="card-v2">
+                <div class="card-header-v2">
+                    <div class="card-title-v2"><i class="fa-solid fa-building-user"></i> Hospital Branch Performance</div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="chartBranchPerformance"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ======================================================================= -->
+    <!-- PAGE 2: PATIENT ANALYTICS -->
+    <!-- ======================================================================= -->
+    <main id="page-patients" class="dashboard-page">
+        <div class="grid-cols-2">
+            <div class="card-v2">
+                <div class="card-header-v2">
+                    <div class="card-title-v2"><i class="fa-solid fa-chart-bar"></i> Age Group & Gender Distribution</div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="chartPatientDemographics"></canvas>
+                </div>
+            </div>
+            <div class="card-v2">
+                <div class="card-header-v2">
+                    <div class="card-title-v2"><i class="fa-solid fa-shield-halved"></i> Insurance Provider Coverage</div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="chartInsuranceCoverage"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ======================================================================= -->
+    <!-- PAGE 3: DOCTOR PERFORMANCE -->
+    <!-- ======================================================================= -->
+    <main id="page-doctors" class="dashboard-page">
+        <div class="grid-cols-2">
+            <div class="card-v2">
+                <div class="card-header-v2">
+                    <div class="card-title-v2"><i class="fa-solid fa-award"></i> Doctor Scorecard Leaderboard</div>
+                </div>
+                <table class="table-dense" id="tableFullDoctorLeaderboard">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Doctor Name</th>
+                            <th>Specialization</th>
+                            <th>Exp</th>
+                            <th>Appointments</th>
+                            <th>Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="card-v2">
+                <div class="card-header-v2">
+                    <div class="card-title-v2"><i class="fa-solid fa-user-clock"></i> Doctor Consultation Workload</div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="chartDoctorUtilization"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ======================================================================= -->
+    <!-- PAGE 4: APPOINTMENTS DASHBOARD -->
+    <!-- ======================================================================= -->
+    <main id="page-appointments" class="dashboard-page">
+        <div class="grid-cols-2">
+            <div class="card-v2">
+                <div class="card-header-v2">
+                    <div class="card-title-v2"><i class="fa-solid fa-clock"></i> Peak Appointment Booking Hours</div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="chartPeakHours"></canvas>
+                </div>
+            </div>
+            <div class="card-v2">
+                <div class="card-header-v2">
+                    <div class="card-title-v2"><i class="fa-solid fa-chart-doughnut"></i> Appointment Status Breakdown</div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="chartAppStatusDoughnut"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ======================================================================= -->
+    <!-- PAGE 5: FINANCIAL DASHBOARD & FORECASTING -->
+    <!-- ======================================================================= -->
+    <main id="page-financial" class="dashboard-page">
+        <div class="grid-cols-2-1">
+            <div class="card-v2">
+                <div class="card-header-v2">
+                    <div class="card-title-v2"><i class="fa-solid fa-chart-line"></i> Revenue Forecast Model</div>
+                </div>
+                <div class="chart-box lg">
+                    <canvas id="chartFinancialForecast"></canvas>
+                </div>
+            </div>
+            <div class="card-v2">
+                <div class="card-header-v2">
+                    <div class="card-title-v2"><i class="fa-solid fa-wallet"></i> Payment Method Split</div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="chartPaymentMethodSplit"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ======================================================================= -->
+    <!-- PAGE 6: TREATMENTS DASHBOARD -->
+    <!-- ======================================================================= -->
+    <main id="page-treatments" class="dashboard-page">
+        <div class="grid-cols-2">
+            <div class="card-v2">
+                <div class="card-header-v2">
+                    <div class="card-title-v2"><i class="fa-solid fa-stethoscope"></i> Treatment Frequency & Cost</div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="chartTopMedicines"></canvas>
+                </div>
+            </div>
+            <div class="card-v2">
+                <div class="card-header-v2">
+                    <div class="card-title-v2"><i class="fa-solid fa-notes-medical"></i> Treatment Success Rate</div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="chartTreatmentSuccess"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ======================================================================= -->
+    <!-- PAGE 7: DISEASE ANALYTICS -->
+    <!-- ======================================================================= -->
+    <main id="page-diseases" class="dashboard-page">
+        <div class="grid-cols-2">
+            <div class="card-v2">
+                <div class="card-header-v2">
+                    <div class="card-title-v2"><i class="fa-solid fa-virus"></i> Top Visit Reasons & Diagnoses</div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="chartTopDiseases"></canvas>
+                </div>
+            </div>
+            <div class="card-v2">
+                <div class="card-header-v2">
+                    <div class="card-title-v2"><i class="fa-solid fa-triangle-exclamation"></i> Disease Severity Breakdown</div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="chartDiseaseSeverity"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ======================================================================= -->
+    <!-- PAGE 8: HOSPITAL OPERATIONS -->
+    <!-- ======================================================================= -->
+    <main id="page-operations" class="dashboard-page">
+        <div class="grid-cols-2">
+            <div class="card-v2">
+                <div class="card-header-v2">
+                    <div class="card-title-v2"><i class="fa-solid fa-bed"></i> Bed Occupancy Rate by Branch</div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="chartBedOccupancy"></canvas>
+                </div>
+            </div>
+            <div class="card-v2">
+                <div class="card-header-v2">
+                    <div class="card-title-v2"><i class="fa-solid fa-truck-medical"></i> Emergency Visits Triage</div>
+                </div>
+                <div class="chart-box">
+                    <canvas id="chartEmergencyTriage"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ======================================================================= -->
+    <!-- PAGE 9: AI SCENARIO ANALYTICS -->
+    <!-- ======================================================================= -->
+    <main id="page-ai-insights" class="dashboard-page">
+        <div class="card-v2" style="margin-bottom:12px;">
+            <div class="card-title-v2"><i class="fa-solid fa-sitemap"></i> Power BI Decomposition Tree Simulation</div>
+            <div style="padding: 10px; background: rgba(0,0,0,0.2); border-radius:6px; font-family: monospace; font-size:11px; line-height:1.6;">
+                <div><span style="color:#0ea5e9;">Total Hospital Revenue ($784,200)</span></div>
+                <div style="padding-left: 15px;">├── <span style="color:#10b981;">Cardiology ($280,400)</span> ➔ 70% Inpatient | 30% Outpatient</div>
+                <div style="padding-left: 15px;">├── <span style="color:#10b981;">Orthopedics ($210,100)</span> ➔ 80% Procedures | 20% Consultations</div>
+                <div style="padding-left: 15px;">└── <span style="color:#f59e0b;">Neurology ($144,700)</span> ➔ 65% Diagnostics | 35% Follow-ups</div>
+            </div>
+        </div>
+
+        <div class="card-v2">
+            <div class="card-header-v2">
+                <div class="card-title-v2"><i class="fa-solid fa-sliders"></i> Dynamic What-If Capacity Simulator</div>
+            </div>
+            <div style="display:flex; gap:16px; align-items:center; margin-bottom:12px;">
+                <label style="font-weight:700;">Doctor Headcount Increase (%): </label>
+                <input type="range" id="sliderDoctorIncrease" min="0" max="50" value="10" step="5" style="width:180px;">
+                <span id="valDoctorIncrease" style="font-weight:800; color:var(--primary);">+10%</span>
+            </div>
+            <div id="whatIfResultText" style="font-size:11px; color:var(--text-muted); line-height:1.5;">
+                Increasing doctor capacity by 10% is projected to reduce wait times by 4.2 minutes and boost monthly revenue by +$14,500.
+            </div>
+        </div>
+    </main>
+
+    <!-- ======================================================================= -->
+    <!-- PAGE 10: DATASET MANAGER (v3.1 DYNAMIC INGESTION ENGINE) -->
+    <!-- ======================================================================= -->
+    <main id="page-dataset" class="dashboard-page">
+        <!-- Actions Bar -->
+        <div class="card-v2" style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <h3 style="font-family: var(--font-heading); font-size: 15px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-folder-open"></i> Dataset Manager & Dynamic Ingestion Engine
+                </h3>
+                <p style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                    Upload CSV or Excel (.xlsx) files to dynamically update MySQL database and refresh all 9 analytics dashboards instantly.
+                </p>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <input type="file" id="inputBatchFiles" multiple accept=".csv, .xlsx" style="display: none;" onchange="handleBatchFileSelect(this.files)">
+                <button id="btnUploadAll" class="btn-primary-v2" onclick="document.getElementById('inputBatchFiles').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload All Files</button>
+                <button id="btnImportDataset" class="btn-success-v2" onclick="triggerImportAndRefresh()"><i class="fa-solid fa-database"></i> Import & Refresh Dashboard</button>
+                <button id="btnRefreshDashboard" class="btn-info-v2" onclick="triggerRefreshDashboard()"><i class="fa-solid fa-rotate"></i> Refresh Dashboard</button>
+                <button id="btnClearDataset" class="btn-danger-v2" onclick="resetAllDatasets()"><i class="fa-solid fa-trash-can"></i> Clear Dataset</button>
+            </div>
+        </div>
+
+        <!-- Global Status Notification Banner -->
+        <div id="uploadGlobalNotification" class="card-v2" style="display: none; margin-bottom: 12px; padding: 10px 14px; font-weight: 600; font-size: 11px;"></div>
+
+        <!-- Dataset Status Summary Panel -->
+        <div class="kpi-grid-v2" style="margin-bottom: 12px;" id="datasetSummaryPanel">
+            <div class="card-v2">
+                <div class="kpi-title-v2">Patients Dataset</div>
+                <div class="kpi-value-v2" id="statusCountPatients">0 Rows</div>
+                <div class="kpi-sub-v2" id="statusBadgePatients"><span class="status-badge-v2 missing">❌ Missing</span></div>
+            </div>
+            <div class="card-v2">
+                <div class="kpi-title-v2">Doctors Dataset</div>
+                <div class="kpi-value-v2" id="statusCountDoctors">0 Rows</div>
+                <div class="kpi-sub-v2" id="statusBadgeDoctors"><span class="status-badge-v2 missing">❌ Missing</span></div>
+            </div>
+            <div class="card-v2">
+                <div class="kpi-title-v2">Appointments Dataset</div>
+                <div class="kpi-value-v2" id="statusCountAppointments">0 Rows</div>
+                <div class="kpi-sub-v2" id="statusBadgeAppointments"><span class="status-badge-v2 missing">❌ Missing</span></div>
+            </div>
+            <div class="card-v2">
+                <div class="kpi-title-v2">Treatments Dataset</div>
+                <div class="kpi-value-v2" id="statusCountTreatments">0 Rows</div>
+                <div class="kpi-sub-v2" id="statusBadgeTreatments"><span class="status-badge-v2 missing">❌ Missing</span></div>
+            </div>
+            <div class="card-v2">
+                <div class="kpi-title-v2">Billing Dataset</div>
+                <div class="kpi-value-v2" id="statusCountBilling">0 Rows</div>
+                <div class="kpi-sub-v2" id="statusBadgeBilling"><span class="status-badge-v2 missing">❌ Missing</span></div>
+            </div>
+        </div>
+
+        <!-- Upload Cards Grid (5 Datasets) -->
+        <div class="dataset-upload-grid">
+            <!-- 1. Patients -->
+            <div class="upload-card" data-table="patients" id="dropzone-patients">
+                <div class="upload-card-header">
+                    <span class="upload-card-title"><i class="fa-solid fa-users-medical" style="color:var(--primary);"></i> Patients Dataset</span>
+                    <span id="badge-patients" class="status-badge-v2 missing">❌ Missing</span>
+                </div>
+                <div class="dropzone-box" onclick="document.getElementById('file-patients').click()">
+                    <div class="dropzone-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                    <div class="dropzone-text">Drag & drop <strong>patients.csv / .xlsx</strong> here, or click to browse</div>
+                    <input type="file" id="file-patients" accept=".csv, .xlsx" style="display:none;" onchange="handleSingleFileSelect('patients', this.files[0])">
+                </div>
+                <div class="upload-progress-container" id="progress-container-patients">
+                    <div class="upload-progress-bar" id="progress-bar-patients"></div>
+                </div>
+                <div class="card-actions-row">
+                    <button class="btn-primary-v2" onclick="document.getElementById('file-patients').click()"><i class="fa-solid fa-upload"></i> Upload</button>
+                    <button class="btn-info-v2" onclick="previewDataset('patients')"><i class="fa-solid fa-eye"></i> Preview</button>
+                    <button class="btn-secondary-v2" onclick="downloadSample('patients')"><i class="fa-solid fa-download"></i> Sample</button>
+                    <button class="btn-danger-v2" onclick="deleteDataset('patients')"><i class="fa-solid fa-trash"></i> Delete</button>
+                </div>
+            </div>
+
+            <!-- 2. Doctors -->
+            <div class="upload-card" data-table="doctors" id="dropzone-doctors">
+                <div class="upload-card-header">
+                    <span class="upload-card-title"><i class="fa-solid fa-user-doctor" style="color:var(--primary);"></i> Doctors Dataset</span>
+                    <span id="badge-doctors" class="status-badge-v2 missing">❌ Missing</span>
+                </div>
+                <div class="dropzone-box" onclick="document.getElementById('file-doctors').click()">
+                    <div class="dropzone-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                    <div class="dropzone-text">Drag & drop <strong>doctors.csv / .xlsx</strong> here, or click to browse</div>
+                    <input type="file" id="file-doctors" accept=".csv, .xlsx" style="display:none;" onchange="handleSingleFileSelect('doctors', this.files[0])">
+                </div>
+                <div class="upload-progress-container" id="progress-container-doctors">
+                    <div class="upload-progress-bar" id="progress-bar-doctors"></div>
+                </div>
+                <div class="card-actions-row">
+                    <button class="btn-primary-v2" onclick="document.getElementById('file-doctors').click()"><i class="fa-solid fa-upload"></i> Upload</button>
+                    <button class="btn-info-v2" onclick="previewDataset('doctors')"><i class="fa-solid fa-eye"></i> Preview</button>
+                    <button class="btn-secondary-v2" onclick="downloadSample('doctors')"><i class="fa-solid fa-download"></i> Sample</button>
+                    <button class="btn-danger-v2" onclick="deleteDataset('doctors')"><i class="fa-solid fa-trash"></i> Delete</button>
+                </div>
+            </div>
+
+            <!-- 3. Appointments -->
+            <div class="upload-card" data-table="appointments" id="dropzone-appointments">
+                <div class="upload-card-header">
+                    <span class="upload-card-title"><i class="fa-solid fa-calendar-check" style="color:var(--primary);"></i> Appointments Dataset</span>
+                    <span id="badge-appointments" class="status-badge-v2 missing">❌ Missing</span>
+                </div>
+                <div class="dropzone-box" onclick="document.getElementById('file-appointments').click()">
+                    <div class="dropzone-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                    <div class="dropzone-text">Drag & drop <strong>appointments.csv / .xlsx</strong> here, or click to browse</div>
+                    <input type="file" id="file-appointments" accept=".csv, .xlsx" style="display:none;" onchange="handleSingleFileSelect('appointments', this.files[0])">
+                </div>
+                <div class="upload-progress-container" id="progress-container-appointments">
+                    <div class="upload-progress-bar" id="progress-bar-appointments"></div>
+                </div>
+                <div class="card-actions-row">
+                    <button class="btn-primary-v2" onclick="document.getElementById('file-appointments').click()"><i class="fa-solid fa-upload"></i> Upload</button>
+                    <button class="btn-info-v2" onclick="previewDataset('appointments')"><i class="fa-solid fa-eye"></i> Preview</button>
+                    <button class="btn-secondary-v2" onclick="downloadSample('appointments')"><i class="fa-solid fa-download"></i> Sample</button>
+                    <button class="btn-danger-v2" onclick="deleteDataset('appointments')"><i class="fa-solid fa-trash"></i> Delete</button>
+                </div>
+            </div>
+
+            <!-- 4. Treatments -->
+            <div class="upload-card" data-table="treatments" id="dropzone-treatments">
+                <div class="upload-card-header">
+                    <span class="upload-card-title"><i class="fa-solid fa-stethoscope" style="color:var(--primary);"></i> Treatments Dataset</span>
+                    <span id="badge-treatments" class="status-badge-v2 missing">❌ Missing</span>
+                </div>
+                <div class="dropzone-box" onclick="document.getElementById('file-treatments').click()">
+                    <div class="dropzone-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                    <div class="dropzone-text">Drag & drop <strong>treatments.csv / .xlsx</strong> here, or click to browse</div>
+                    <input type="file" id="file-treatments" accept=".csv, .xlsx" style="display:none;" onchange="handleSingleFileSelect('treatments', this.files[0])">
+                </div>
+                <div class="upload-progress-container" id="progress-container-treatments">
+                    <div class="upload-progress-bar" id="progress-bar-treatments"></div>
+                </div>
+                <div class="card-actions-row">
+                    <button class="btn-primary-v2" onclick="document.getElementById('file-treatments').click()"><i class="fa-solid fa-upload"></i> Upload</button>
+                    <button class="btn-info-v2" onclick="previewDataset('treatments')"><i class="fa-solid fa-eye"></i> Preview</button>
+                    <button class="btn-secondary-v2" onclick="downloadSample('treatments')"><i class="fa-solid fa-download"></i> Sample</button>
+                    <button class="btn-danger-v2" onclick="deleteDataset('treatments')"><i class="fa-solid fa-trash"></i> Delete</button>
+                </div>
+            </div>
+
+            <!-- 5. Billing -->
+            <div class="upload-card" data-table="billing" id="dropzone-billing">
+                <div class="upload-card-header">
+                    <span class="upload-card-title"><i class="fa-solid fa-file-invoice-dollar" style="color:var(--primary);"></i> Billing Dataset</span>
+                    <span id="badge-billing" class="status-badge-v2 missing">❌ Missing</span>
+                </div>
+                <div class="dropzone-box" onclick="document.getElementById('file-billing').click()">
+                    <div class="dropzone-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                    <div class="dropzone-text">Drag & drop <strong>billing.csv / .xlsx</strong> here, or click to browse</div>
+                    <input type="file" id="file-billing" accept=".csv, .xlsx" style="display:none;" onchange="handleSingleFileSelect('billing', this.files[0])">
+                </div>
+                <div class="upload-progress-container" id="progress-container-billing">
+                    <div class="upload-progress-bar" id="progress-bar-billing"></div>
+                </div>
+                <div class="card-actions-row">
+                    <button class="btn-primary-v2" onclick="document.getElementById('file-billing').click()"><i class="fa-solid fa-upload"></i> Upload</button>
+                    <button class="btn-info-v2" onclick="previewDataset('billing')"><i class="fa-solid fa-eye"></i> Preview</button>
+                    <button class="btn-secondary-v2" onclick="downloadSample('billing')"><i class="fa-solid fa-download"></i> Sample</button>
+                    <button class="btn-danger-v2" onclick="deleteDataset('billing')"><i class="fa-solid fa-trash"></i> Delete</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Expander Container -->
+        <div id="previewContainer" class="card-v2" style="display:none; margin-bottom: 16px;">
+            <div class="card-header-v2">
+                <div class="card-title-v2" id="previewTitle"><i class="fa-solid fa-table"></i> Dataset Validation & Preview</div>
+                <button class="btn-secondary-v2" onclick="document.getElementById('previewContainer').style.display='none'"><i class="fa-solid fa-xmark"></i> Close Preview</button>
+            </div>
+            
+            <div class="preview-stats-grid" id="previewStatsGrid"></div>
+            <div id="previewValidationAlert" style="margin-bottom: 10px;"></div>
+
+            <div style="overflow-x:auto; max-height: 250px;">
+                <table class="table-dense" id="previewDataTable">
+                    <thead id="previewTableHead"></thead>
+                    <tbody id="previewTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Upload History Log Table -->
+        <div class="card-v2">
+            <div class="card-header-v2">
+                <div class="card-title-v2"><i class="fa-solid fa-clock-rotate-left"></i> Dataset Upload & Audit History</div>
+                <button class="btn-secondary-v2" onclick="loadUploadHistory()"><i class="fa-solid fa-rotate"></i> Refresh History</button>
+            </div>
+            <div style="overflow-x:auto;">
+                <table class="table-dense" id="tableUploadHistory">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Dataset / Table</th>
+                            <th>Filename</th>
+                            <th>Records</th>
+                            <th>Status</th>
+                            <th>Audit Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyUploadHistory">
+                        <tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No upload history logged yet.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="app-footer">
+        © Apex Care Analytics | Built using SQL + Power BI + React + Python | Version 1.0
+    </footer>
+
+    <!-- Custom JS -->
+    <script src="js/app.js"></script>
+</body>
+</html>
